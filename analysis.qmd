@@ -1,0 +1,5 @@
+---
+title: "Analyzing US Census Data"
+author: "Ángel Emilio Frías"
+format: html
+---

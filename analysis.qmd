@@ -1,6 +1,5 @@
 ---
-title: "Analyzing US Census Data"
-author: "Ángel Emilio Frías"
+title: "California County Population and Median Age"
 format: html
 execute:
   echo: false
@@ -10,61 +9,50 @@ execute:
 #| message: false
 library(tidyverse)
 library(tidycensus)
-library(sf)
 ```
 
 ```{r}
 #| message: false
-#| cache: true
-
-income_tx <- get_acs(
+age_ca <- get_acs(
   geography = "county",
-  state = "TX",
-  variables = "B19013_001",
+  state = "CA",
+  variables = c(
+    median_age = "B01002_001",
+    population = "B01003_001"
+  ),
   year = 2020,
-  geometry = TRUE
+  geometry = FALSE
 )
 ```
 
 ```{r}
-income_tx |>
-  ggplot(aes(fill = estimate)) +
-  geom_sf() +
-  scale_fill_viridis_c(labels = scales::dollar) +
-  theme_void() +
-  labs(
-    title = "Median Household Income in Texas Counties",
-    fill = "Income"
+age_ca_wide <- age_ca |>
+  pivot_wider(
+    id_cols = c(GEOID, NAME),
+    names_from = variable,
+    values_from = estimate
   )
-```
 
-```{r}
-#| message: false
-edu_state <- get_acs(
-  geography = "state",
-  variables = c("B15003_001", "B15003_022", "B15003_023", "B15003_024", "B15003_025"),
-  year = 2020,
-  geometry = FALSE,
-  summary_var = "B15003_001"
-)
-```
-```{r}
-edu_state |>
-  filter(variable != "B15003_001") |>
-  group_by(NAME) |>
-  summarize(
-    estimate = sum(estimate),
-    summary_est = first(summary_est)
-  ) |>
-  mutate(percent = 100 * estimate / summary_est) |>
-ggplot(aes(x = percent, y = reorder(NAME, percent))) +
-  geom_col() +
-  scale_x_continuous(labels = scales::percent_format(scale = 1)) +
+plot_exercise5 <- age_ca_wide |>
+  ggplot(aes(x = median_age, y = population)) +
+  geom_point() +
+  geom_text(
+    data = age_ca_wide |>
+      slice_max(population, n = 5) |>
+      arrange(median_age),
+    aes(label = stringr::str_remove(NAME, " County, California")),
+    hjust = 1.1,
+    check_overlap = TRUE,
+    size = 3
+  ) +
+  scale_y_log10(labels = scales::comma) +
   labs(
-    title = "Educational Attainment by State",
-    x = "Percentage with at Least a Bachelor's Degree",
-    y = NULL,
-    caption = "Source: 2016-2020 American Community Survey"
+    title = "California County Population by Median Age",
+    x = "Median age (years)",
+    y = "County population (log scale)",
+    caption = "Source: U.S. Census Bureau, 2016–2020 American Community Survey"
   ) +
   theme_minimal()
+
+plot_exercise5
 ```
